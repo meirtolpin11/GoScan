@@ -2,10 +2,9 @@ package ProbeParser
 
 import (
 	_ "embed"
-	"fmt"
-	"strings"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // based on https://github.com/RickGray/vscan-go
@@ -13,17 +12,18 @@ import (
 //go:embed nmap-service-probes
 var nmap_service_probes string
 
-func ParseServiceProbes() {
+func (v *VScan) ParseServiceProbes() {
 
 	var excludePorts string
+	var probes []Probe
 
-	// first of all let's ignore all the comment lines 
+	// first of all let's ignore all the comment lines
 	var lines []string
 
 	tmpLines := strings.Split(nmap_service_probes, "\n")
 	for _, line := range tmpLines {
 		line = strings.TrimSpace(line)
-		
+
 		if line == "" || strings.HasPrefix(line, "#") {
 			// ignore blank or comment lines
 			continue
@@ -38,25 +38,39 @@ func ParseServiceProbes() {
 
 	firstLine := lines[0]
 
-	if strings.HasPrefix(firstLine, "Exclude "){ 
-		excludePorts = firstLine[len("Exclude ") + 1:]
+	if strings.HasPrefix(firstLine, "Exclude ") {
+		excludePorts = firstLine[len("Exclude ")+1:]
 
-		// removing the first line from the probes list 
+		// removing the first line from the probes list
 		lines = lines[1:]
 	}
 
 	cleanData := "\n" + strings.Join(lines, "\n")
 
-	probes := strings.Split(cleanData, "\nProbe")
+	probesStr := strings.Split(cleanData, "\nProbe")
 
 	// the first line is empty
-	probes = probes[1:]
+	probesStr = probesStr[1:]
 
-	fmt.Println(excludePorts)
-	for _, probeText :=	 range(probes) {
+	v.Exclude = excludePorts
+	for _, probeText := range probesStr {
 		probe := Probe{}
-		probe.ParseProbe(probeText)
+		err := probe.ParseProbe(probeText)
+		if err != nil {
+			continue
+		}
+
+		probes = append(probes, probe)
 	}
+	v.Probes = probes
+}
+
+func (v *VScan) parseProbesToMapKName(probes []Probe) {
+	var probesMap = map[string]Probe{}
+	for _, probe := range v.Probes {
+		probesMap[probe.Name] = probe
+	}
+	v.ProbesMapKName = probesMap
 }
 
 func (p *Probe) parseProbeInfo(probeStr string) {
@@ -82,8 +96,8 @@ func (p *Probe) getDirectiveSyntax(data string) (directive Directive) {
 
 	blankIndex := strings.Index(data, " ")
 	directiveName := data[:blankIndex]
-	Flag := data[blankIndex+1: blankIndex+2]
-	delimiter := data[blankIndex+2: blankIndex+3]
+	Flag := data[blankIndex+1 : blankIndex+2]
+	delimiter := data[blankIndex+2 : blankIndex+3]
 	directiveStr := data[blankIndex+3:]
 
 	directive.DirectiveName = directiveName

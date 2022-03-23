@@ -5,5 +5,7 @@ import (
 )
 
 func main() {
-	ProbeParser.ParseServiceProbes()
+	vscan := ProbeParser.VScan{}
+	vscan.ParseServiceProbes()
+
 }

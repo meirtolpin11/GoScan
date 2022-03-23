@@ -4,10 +4,10 @@ import (
 	"regexp"
 )
 
-// Documentation about the structure of the nmap-service-probes file is here 
+// Documentation about the structure of the nmap-service-probes file is here
 // https://nmap.org/book/vscan-fileformat.html
 
-// parsed probe struct from the nmap-service-probes file 
+// parsed probe struct from the nmap-service-probes file
 type Probe struct {
 	Name     string
 	Data     string
@@ -24,7 +24,7 @@ type Probe struct {
 	Matchs *[]Match
 }
 
-// nmap-service-probes probe match info 
+// nmap-service-probes probe match info
 type Match struct {
 	IsSoft bool
 
@@ -41,4 +41,12 @@ type Directive struct {
 	Flag          string
 	Delimiter     string
 	DirectiveStr  string
+}
+
+type VScan struct {
+	Exclude string
+
+	Probes []Probe
+
+	ProbesMapKName map[string]Probe
 }
