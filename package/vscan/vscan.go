@@ -1,7 +1,7 @@
 package vscan
 
 import (
-	"./proberbyte"
+	"GoScan/package/vscan/proberbyte"
 	"bytes"
 	"compress/gzip"
 	"crypto/tls"

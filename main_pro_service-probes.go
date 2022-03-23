@@ -1,9 +1,9 @@
 package main
 
 import (
-	"./package/icmpcheck"
-	"./package/portscan"
-	"./package/vscan"
+	"GoScan/package/icmpcheck"
+	"GoScan/package/portscan"
+	"GoScan/package/vscan"
 	"flag"
 	"fmt"
 	"github.com/malfunkt/iprange"

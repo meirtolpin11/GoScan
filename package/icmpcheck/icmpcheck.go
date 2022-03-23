@@ -1,7 +1,7 @@
 package icmpcheck
 
 import (
-	"../getsysinfo"
+	"GoScan/package/getsysinfo"
 	"bytes"
 	"encoding/binary"
 	"fmt"
