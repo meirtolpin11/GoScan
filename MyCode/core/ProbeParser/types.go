@@ -54,3 +54,11 @@ type VScan struct {
 
 	ProbesMapKName map[string]Probe
 }
+
+type Target struct {
+	IP       string
+	Port     int
+	Protocol string
+}
+
+type ProbesRarity []Probe
