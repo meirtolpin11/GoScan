@@ -1,0 +1,2 @@
+# GoScan
+Golang Modular Scanner
