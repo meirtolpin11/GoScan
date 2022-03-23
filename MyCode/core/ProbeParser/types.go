@@ -18,8 +18,12 @@ type Probe struct {
 
 	TotalWaitMS  int
 	TCPWrappedMS int
-	Rarity       int
-	Fallback     string
+
+	// rarity is important as in my code I will ignore the probe ports and run
+	// the probe explore on every port. so I will go from high to low rarity
+	Rarity int
+
+	Fallback string
 
 	Matchs *[]Match
 }
