@@ -1,7 +1,6 @@
 package ProbeParser
 
 import (
-	"sort"
 	"fmt"
 	"regexp"
 	"strings"
@@ -196,24 +195,6 @@ func (v *VScan) ScanTarget(host string, ports []int) (map[string][]Result) {
 		results[host] = append(results[host], portResult)
 	}	
 
+	fmt.Println("")
 	return results
-}
-
-func sortProbesByRarity(probes []Probe) (probesSorted []Probe) {
-	probesToSort := ProbesRarity(probes)
-	sort.Stable(probesToSort)
-	probesSorted = []Probe(probesToSort)
-	return probesSorted
-}
-
-func (ps ProbesRarity) Len() int {
-	return len(ps)
-}
-
-func (ps ProbesRarity) Swap(i, j int) {
-	ps[i], ps[j] = ps[j], ps[i]
-}
-
-func (ps ProbesRarity) Less(i, j int) bool {
-	return ps[i].Rarity < ps[j].Rarity
 }

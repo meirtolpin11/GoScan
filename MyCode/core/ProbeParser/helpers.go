@@ -1,6 +1,7 @@
 package ProbeParser
 
 import (
+	"sort"
 	"regexp"
 	"strings"
 	"strconv"
@@ -194,7 +195,7 @@ func (m *Match) ParseVersionInfo(response []byte) Extras {
 
 func sortProbesByRarity(probes []Probe) (probesSorted []Probe) {
 	probesToSort := ProbesRarity(probes)
-	sort.Stable(probesToSort)
+	sort.Stable(sort.Reverse(probesToSort))
 	probesSorted = []Probe(probesToSort)
 	return probesSorted
 }
