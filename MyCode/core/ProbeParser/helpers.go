@@ -2,6 +2,7 @@ package ProbeParser
 
 import (
 	"regexp"
+	"strings"
 	"strconv"
 )
 
@@ -80,4 +81,132 @@ func DecodePattern(s string) ([]byte, error) {
 		return replace
 	})
 	return sByteDec2, nil
+}
+
+func (t *Target) GetAddress() string {
+	return t.IP + ":" + strconv.Itoa(t.Port)
+}
+
+func (m *Match) MatchPattern(response []byte) (matched bool) {
+	responseStr := string([]rune(string(response)))
+	foundItems := m.PatternCompiled.FindStringSubmatch(responseStr)
+	if len(foundItems) > 0 {
+		matched = true
+		return
+	}
+	return false
+}
+
+func (m *Match) ParseVersionInfo(response []byte) Extras {
+	var extras = Extras{}
+
+	responseStr := string([]rune(string(response)))
+	foundItems := m.PatternCompiled.FindStringSubmatch(responseStr)
+
+	versionInfo := m.VersionInfo
+	foundItems = foundItems[1:]
+	for index, value := range foundItems {
+		dollarName := "$" + strconv.Itoa(index+1)
+		versionInfo = strings.Replace(versionInfo, dollarName, value, -1)
+	}
+
+	v := versionInfo
+	if strings.Contains(v, " p/") {
+		regex := regexp.MustCompile(`p/([^/]*)/`)
+		vendorProductName := regex.FindStringSubmatch(v)
+		extras.VendorProduct = vendorProductName[1]
+	}
+	if strings.Contains(v, " p|") {
+		regex := regexp.MustCompile(`p|([^|]*)|`)
+		vendorProductName := regex.FindStringSubmatch(v)
+		extras.VendorProduct = vendorProductName[1]
+	}
+	if strings.Contains(v, " v/") {
+		regex := regexp.MustCompile(`v/([^/]*)/`)
+		version := regex.FindStringSubmatch(v)
+		extras.Version = version[1]
+	}
+	if strings.Contains(v, " v|") {
+		regex := regexp.MustCompile(`v|([^|]*)|`)
+		version := regex.FindStringSubmatch(v)
+		extras.Version = version[1]
+	}
+	if strings.Contains(v, " i/") {
+		regex := regexp.MustCompile(`i/([^/]*)/`)
+		info := regex.FindStringSubmatch(v)
+		extras.Info = info[1]
+	}
+	if strings.Contains(v, " i|") {
+		regex := regexp.MustCompile(`i|([^|]*)|`)
+		info := regex.FindStringSubmatch(v)
+		extras.Info = info[1]
+	}
+	if strings.Contains(v, " h/") {
+		regex := regexp.MustCompile(`h/([^/]*)/`)
+		hostname := regex.FindStringSubmatch(v)
+		extras.Hostname = hostname[1]
+	}
+	if strings.Contains(v, " h|") {
+		regex := regexp.MustCompile(`h|([^|]*)|`)
+		hostname := regex.FindStringSubmatch(v)
+		extras.Hostname = hostname[1]
+	}
+	if strings.Contains(v, " o/") {
+		regex := regexp.MustCompile(`o/([^/]*)/`)
+		operatingSystem := regex.FindStringSubmatch(v)
+		extras.OperatingSystem = operatingSystem[1]
+	}
+	if strings.Contains(v, " o|") {
+		regex := regexp.MustCompile(`o|([^|]*)|`)
+		operatingSystem := regex.FindStringSubmatch(v)
+		extras.OperatingSystem = operatingSystem[1]
+	}
+	if strings.Contains(v, " d/") {
+		regex := regexp.MustCompile(`d/([^/]*)/`)
+		deviceType := regex.FindStringSubmatch(v)
+		extras.DeviceType = deviceType[1]
+	}
+	if strings.Contains(v, " d|") {
+		regex := regexp.MustCompile(`d|([^|]*)|`)
+		deviceType := regex.FindStringSubmatch(v)
+		extras.DeviceType = deviceType[1]
+	}
+	if strings.Contains(v, " cpe:/") {
+		regex := regexp.MustCompile(`cpe:/([^/]*)/`)
+		cpeName := regex.FindStringSubmatch(v)
+		if len(cpeName) > 1 {
+			extras.CPE = cpeName[1]
+		} else {
+			extras.CPE = cpeName[0]
+		}
+	}
+	if strings.Contains(v, " cpe:|") {
+		regex := regexp.MustCompile(`cpe:|([^|]*)|`)
+		cpeName := regex.FindStringSubmatch(v)
+		if len(cpeName) > 1 {
+			extras.CPE = cpeName[1]
+		} else {
+			extras.CPE = cpeName[0]
+		}
+	}
+	return extras
+}
+
+func sortProbesByRarity(probes []Probe) (probesSorted []Probe) {
+	probesToSort := ProbesRarity(probes)
+	sort.Stable(probesToSort)
+	probesSorted = []Probe(probesToSort)
+	return probesSorted
+}
+
+func (ps ProbesRarity) Len() int {
+	return len(ps)
+}
+
+func (ps ProbesRarity) Swap(i, j int) {
+	ps[i], ps[j] = ps[j], ps[i]
+}
+
+func (ps ProbesRarity) Less(i, j int) bool {
+	return ps[i].Rarity < ps[j].Rarity
 }

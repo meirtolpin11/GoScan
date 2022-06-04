@@ -61,4 +61,31 @@ type Target struct {
 	Protocol string
 }
 
+type Result struct {
+	Target
+	Service
+	Error     string
+}
+
+type Service struct {
+	Name        string
+	Banner      string
+
+	Extras
+}
+
+type Extras struct {
+	VendorProduct   string
+	Version         string
+	Info            string
+	Hostname        string
+	OperatingSystem string
+	DeviceType      string
+	CPE             string
+	Sign            string
+	StatusCode      int
+	ServiceURL      string
+}
+
+
 type ProbesRarity []Probe
