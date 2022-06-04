@@ -10,7 +10,7 @@ import (
 func main() {
 
 	target := "192.168.1.129"	
-	port := 80
+	port := 445
 	var targets []string;
 	var ports []int;
 
@@ -18,9 +18,6 @@ func main() {
 	targets = append(targets, target)
 
 	ports = append(ports, port)
-	ports = append(ports, 445)
-	ports = append(ports, 135)
-	ports = append(ports, 3389)
 
 	fmt.Println("scanning - " + target)
 
@@ -39,12 +36,16 @@ func main() {
 	fmt.Println(addresses)
 
 
+	/*
+		It's important to mention, that sorting rarity from low to high will give more speed
+		while sorting from high to low will give more accuracy
+	*/
 	results := vscan.ScanTarget(target, ports)
 	
 	
 	for _, results := range results {
 		for _, result := range results {
-			fmt.Printf("%s:%d %s %s %s\n", result.Target.IP, result.Target.Port, result.Service.Name, result.Service.Extras.Version, result.Service.Extras.Hostname)
+			fmt.Printf("%s:%d %s %s %s\n", result.Target.IP, result.Target.Port, result.Service.Name, result.Service.Extras, result.Banner)
 		}
 		
 	}

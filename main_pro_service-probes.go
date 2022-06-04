@@ -135,7 +135,7 @@ func main(){
 		for _,taget :=range TagetBanners{
 			f.WriteString(taget + "\n")
 		}
-		fmt.Printf("Output the scanning information in %s\n",outFile)
+		fmt.Printf("Outputt he scanning information in %s\n",outFile)
 		defer f.Close()
 	}
 

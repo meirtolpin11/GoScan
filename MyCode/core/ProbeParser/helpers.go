@@ -195,7 +195,7 @@ func (m *Match) ParseVersionInfo(response []byte) Extras {
 
 func sortProbesByRarity(probes []Probe) (probesSorted []Probe) {
 	probesToSort := ProbesRarity(probes)
-	sort.Stable(sort.Reverse(probesToSort))
+	sort.Stable(probesToSort)
 	probesSorted = []Probe(probesToSort)
 	return probesSorted
 }

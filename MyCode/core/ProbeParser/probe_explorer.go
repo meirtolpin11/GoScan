@@ -1,7 +1,6 @@
 package ProbeParser
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 	"net"
@@ -29,6 +28,7 @@ func (v *VScan) scanWithProbes(target Target, probes *[]Probe) (Result, error) {
 	matchFound := false
 	softFound := false
 	var softMatch Match
+	var prevMatch Match
 
 
 	// returning if found "hard" match, else will continue to next matches.
@@ -49,18 +49,24 @@ func (v *VScan) scanWithProbes(target Target, probes *[]Probe) (Result, error) {
 			// if not matched to the probe - continue to the next probe 
 			if !matched { continue }
 
+			if len(match.Pattern) < len(prevMatch.Pattern) { continue }
+
 			if match.IsSoft {
 				matchFound = true
 				softFound = true
 				softMatch = match
+				prevMatch = match
+
 			} else {
+				
+				prevMatch = match
 				extras := match.ParseVersionInfo(response)
 				result.Service.Name = match.Service
 
 				result.Banner = trimBanner(response)
 				result.Service.Extras = extras
 
-				return result, nil
+				//return result, nil
 			}
 		}	
 
@@ -73,19 +79,24 @@ func (v *VScan) scanWithProbes(target Target, probes *[]Probe) (Result, error) {
 				// if not matched to the probe - continue to the next probe 
 				if !matched { continue }
 
+				if len(match.Pattern) < len(prevMatch.Pattern) { continue }
+
 				if match.IsSoft {
 					matchFound = true
 					softFound = true
 					softMatch = match 
+					prevMatch = match
 
 				} else {
+
+					prevMatch = match
 					extras := match.ParseVersionInfo(response)
 					result.Service.Name = match.Service
 
 					result.Banner = trimBanner(response)
 					result.Service.Extras = extras
 
-					return result, nil
+					//return result, nil
 				}
 
 			}
@@ -103,9 +114,9 @@ func (v *VScan) scanWithProbes(target Target, probes *[]Probe) (Result, error) {
 				result.Service.Name = softMatch.Service
 
 			}
-
-			return result, nil
-		}
+		} 
+		
+		return result, nil
 	}
 
 	
@@ -195,6 +206,5 @@ func (v *VScan) ScanTarget(host string, ports []int) (map[string][]Result) {
 		results[host] = append(results[host], portResult)
 	}	
 
-	fmt.Println("")
 	return results
 }
