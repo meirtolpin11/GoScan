@@ -65,6 +65,7 @@ type Result struct {
 	Target
 	Service
 	Error     string
+	AdditionalServices []Service
 }
 
 type Service struct {

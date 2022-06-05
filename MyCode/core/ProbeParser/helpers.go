@@ -2,6 +2,7 @@ package ProbeParser
 
 import (
 	"sort"
+	"unicode"
 	"regexp"
 	"strings"
 	"strconv"
@@ -37,6 +38,49 @@ func isOtherEscapeCode(b []byte) bool {
 	matchRe := regexp.MustCompile(`\\[^\\]`)
 	return matchRe.Match(b)
 }
+
+func DecodeData(s string) ([]byte, error) {
+	sByteOrigin := []byte(s)
+	matchRe := regexp.MustCompile(`\\(x[0-9a-fA-F]{2}|[0-7]{1,3}|[aftnrv])`)
+	sByteDec := matchRe.ReplaceAllFunc(sByteOrigin, func(match []byte) (v []byte) {
+		var replace []byte
+		if isHexCode(match) {
+			hexNum := match[2:]
+			byteNum, _ := strconv.ParseInt(string(hexNum), 16, 32)
+			replace = []byte{uint8(byteNum)}
+		}
+		if isStructCode(match) {
+			structCodeMap := map[int][]byte{
+				97:  []byte{0x07}, // \a
+				102: []byte{0x0c}, // \f
+				116: []byte{0x09}, // \t
+				110: []byte{0x0a}, // \n
+				114: []byte{0x0d}, // \r
+				118: []byte{0x0b}, // \v
+			}
+			replace = structCodeMap[int(match[1])]
+		}
+		if isOctalCode(match) {
+			octalNum := match[2:]
+			byteNum, _ := strconv.ParseInt(string(octalNum), 8, 32)
+			replace = []byte{uint8(byteNum)}
+		}
+		return replace
+	})
+
+	matchRe2 := regexp.MustCompile(`\\([^\\])`)
+	sByteDec2 := matchRe2.ReplaceAllFunc(sByteDec, func(match []byte) (v []byte) {
+		var replace []byte
+		if isOtherEscapeCode(match) {
+			replace = match
+		} else {
+			replace = match
+		}
+		return replace
+	})
+	return sByteDec2, nil
+}
+
 
 func DecodePattern(s string) ([]byte, error) {
 	sByteOrigin := []byte(s)
@@ -102,6 +146,7 @@ func (m *Match) ParseVersionInfo(response []byte) Extras {
 	var extras = Extras{}
 
 	responseStr := string([]rune(string(response)))
+
 	foundItems := m.PatternCompiled.FindStringSubmatch(responseStr)
 
 	versionInfo := m.VersionInfo
@@ -110,6 +155,18 @@ func (m *Match) ParseVersionInfo(response []byte) Extras {
 		dollarName := "$" + strconv.Itoa(index+1)
 		versionInfo = strings.Replace(versionInfo, dollarName, value, -1)
 	}
+
+	// do the same for P() function of nmap-probs
+	for index, value := range foundItems {
+
+		value = strings.TrimFunc(value, func(r rune) bool {
+        	return !unicode.IsGraphic(r)
+    	})
+
+		dollarName := "$P(" + strconv.Itoa(index+1) + ")"
+		versionInfo = strings.Replace(versionInfo, dollarName, value, -1)
+	}
+
 
 	v := versionInfo
 	if strings.Contains(v, " p/") {

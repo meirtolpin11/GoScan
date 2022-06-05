@@ -7,6 +7,59 @@ import (
 	"time"
 )
 
+
+func checkMatchForResponse(response []byte, match Match, lastMatch *Match, result *Result) (Match, bool, bool) {
+	// if found the right probe 
+	matchFound := false
+	softFound := false
+	var softMatch Match
+	var tempService Service
+
+	matched := match.MatchPattern(response)
+
+	// if not matched to the probe - continue to the next probe 
+	if !matched { return softMatch, matchFound, softFound }
+
+	// if this match is "less" accurate than the already found match.
+	// if the pattern is longer - the match is more accurate.
+	if len(match.Pattern) < len((*lastMatch).Pattern) { return softMatch, matchFound, softFound }
+
+
+	// if there is already service that found
+	if len((*result).Service.Name) > 0 {
+		matchFound = true
+
+		tempService.Name = match.Service
+		tempService.Extras = match.ParseVersionInfo(response)
+
+		(*result).AdditionalServices = append((*result).AdditionalServices, tempService)
+
+		return softMatch, matchFound, softFound
+	}
+
+
+	if match.IsSoft {
+		// found a soft match
+		softFound = true
+
+
+		softMatch = match
+		*lastMatch = match
+
+	} else {
+		
+		matchFound = true
+		*lastMatch = match
+
+		(*result).Service.Name = match.Service
+		(*result).Banner = trimBanner(response)
+
+		(*result).Service.Extras = match.ParseVersionInfo(response)
+	}
+
+	return softMatch, matchFound, softFound
+}
+
 /*
 	Here I will use the vscan database to scan particular ip:ports and try to figure out what is the
 	service running in the backgroud.
@@ -28,76 +81,37 @@ func (v *VScan) scanWithProbes(target Target, probes *[]Probe) (Result, error) {
 	matchFound := false
 	softFound := false
 	var softMatch Match
-	var prevMatch Match
+	var lastMatch Match
 
 
 	// returning if found "hard" match, else will continue to next matches.
 	for _, probe := range *probes {
 		var response []byte;
 
-		probeData, _ := DecodePattern(probe.Data)
+		// decoding the probe regex pattern 
+		probeData, _ := DecodeData(probe.Data)
+
+
+		// sending the probe and waiting for info
 		response, _ = grabResponse(addr, probeData)
 
-		// continue to the next probe 
+		// if no response is recieved - continue to the next probe 
 		if len(response) == 0 { continue }
 
 		// try to match the probes -
-		for _, match := range *probe.Matchs {
+		for _, match := range *probe.Matchs {	
 
-			matched := match.MatchPattern(response)
+			softMatch, matchFound, softFound = checkMatchForResponse(response, match, &lastMatch, &result)
 
-			// if not matched to the probe - continue to the next probe 
-			if !matched { continue }
-
-			if len(match.Pattern) < len(prevMatch.Pattern) { continue }
-
-			if match.IsSoft {
-				matchFound = true
-				softFound = true
-				softMatch = match
-				prevMatch = match
-
-			} else {
-				
-				prevMatch = match
-				extras := match.ParseVersionInfo(response)
-				result.Service.Name = match.Service
-
-				result.Banner = trimBanner(response)
-				result.Service.Extras = extras
-
-				//return result, nil
-			}
+						
 		}	
 
 		fallback := probe.Fallback
 		fbProbe, status := v.ProbesMapKName[fallback]
 		if status {
 			for _, match := range *fbProbe.Matchs {
-				matched := match.MatchPattern(response)
-
-				// if not matched to the probe - continue to the next probe 
-				if !matched { continue }
-
-				if len(match.Pattern) < len(prevMatch.Pattern) { continue }
-
-				if match.IsSoft {
-					matchFound = true
-					softFound = true
-					softMatch = match 
-					prevMatch = match
-
-				} else {
-
-					prevMatch = match
-					extras := match.ParseVersionInfo(response)
-					result.Service.Name = match.Service
-
-					result.Banner = trimBanner(response)
-					result.Service.Extras = extras
-
-					//return result, nil
-				}
+				
+				softMatch, matchFound, softFound = checkMatchForResponse(response, match, &lastMatch, &result)
 
 			}
 		}

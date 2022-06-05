@@ -4,13 +4,15 @@ import (
 	"MyCode/core/ProbeParser"
 	"MyCode/core/portscan"
 	"fmt"
+	"encoding/json"
+	"os"
 )
 
 
 func main() {
 
-	target := "192.168.1.129"	
-	port := 445
+	target := os.Args[1]
+	port := 1433
 	var targets []string;
 	var ports []int;
 
@@ -44,8 +46,9 @@ func main() {
 	
 	
 	for _, results := range results {
-		for _, result := range results {
-			fmt.Printf("%s:%d %s %s %s\n", result.Target.IP, result.Target.Port, result.Service.Name, result.Service.Extras, result.Banner)
+		for _, result := range results { 
+			s, _ := json.MarshalIndent(result, "", "\t")
+			fmt.Println(string(s))
 		}
 		
 	}
