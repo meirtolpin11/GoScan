@@ -2,10 +2,14 @@ package ProbeParser
 
 import (
 	"sort"
+	"reflect"
+	"fmt"
+	"encoding/json"
 	"unicode"
 	"regexp"
 	"strings"
 	"strconv"
+
 )
 
 
@@ -268,3 +272,79 @@ func (ps ProbesRarity) Swap(i, j int) {
 func (ps ProbesRarity) Less(i, j int) bool {
 	return ps[i].Rarity < ps[j].Rarity
 }
+
+
+
+// Convert to be automatical!
+func (r Result) GetHeaders() string {
+	return "IP, Port, Protocol, Name, Banner, VendorProduct," + 
+				"Version, Info, Hostname, OperatingSystem, DeviceType, " + 
+				"CPE, Sign, StatusCode, ServiceURL, Error, AdditionalServices \n"
+}
+
+func (r Result) ToCSV() string {
+	AdditionalServices, _ :=  json.Marshal(r.AdditionalServices)
+
+	return fmt.Sprintf("%s, %d, %s, %s, %s, %s," + 
+				"%s, %s, %s, %s, %s, " + 
+				"%s, %s, %d, %s, %s, %s \n", r.Target.IP, r.Target.Port, r.Target.Protocol, 
+				r.Service.Name, r.Service.Banner, r.Service.Extras.VendorProduct, r.Service.Extras.Version, 
+				r.Service.Extras.Info, r.Service.Extras.Hostname, r.Service.Extras.OperatingSystem,
+				r.Service.Extras.DeviceType, r.Service.Extras.CPE, r.Service.Extras.Sign, r.Service.Extras.StatusCode,
+				r.Service.Extras.ServiceURL, r.Error, string(AdditionalServices))
+}
+
+func GetValues(s interface{}, params ...[]string) []string {
+	
+	var headers []string
+	if len(params) != 0 {
+		headers = params[0]
+	}
+
+	// get the type of the interface 
+    reflectType := reflect.TypeOf(s).Elem()
+
+    // get the object of the interface
+    reflectValue := reflect.ValueOf(s).Elem()
+
+    for i := 0; i < reflectType.NumField(); i++ {
+        value := reflectValue.Field(i).Interface()
+
+        if reflectValue.Field(i).Kind() == reflect.Struct {
+            headers = GetValues(reflectValue.Field(i).Addr().Interface(), headers)
+        } else {
+        	headers = append(headers, fmt.Sprintf("%v", value))
+        }
+        
+    }
+
+   	return headers
+}
+
+func GetHeaders(s interface{}, params ...[]string) []string {
+	
+	var headers []string
+	if len(params) != 0 {
+		headers = params[0]
+	}
+
+	// get the type of the interface 
+    reflectType := reflect.TypeOf(s).Elem()
+
+    // get the object of the interface
+    reflectValue := reflect.ValueOf(s).Elem()
+
+    for i := 0; i < reflectType.NumField(); i++ {
+        typeName := reflectType.Field(i).Name
+
+        if reflectValue.Field(i).Kind() == reflect.Struct {
+            headers = GetHeaders(reflectValue.Field(i).Addr().Interface(), headers)
+        } else {
+        	headers = append(headers, typeName)	
+        }
+        
+    }
+
+   	return headers
+}
+
