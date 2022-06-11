@@ -18,6 +18,7 @@ import (
 var hostsInput = ""
 var portsInput = ""
 var outFileInput = ""
+var outFileHanle *os.File
 var outputWriter *bufio.Writer
 var printCSV = false
 var timeoutInput int
@@ -41,10 +42,9 @@ func init()  {
 
 
 	if outFileInput != "" {
-		f, _ := os.Create(outFileInput)
-		defer f.Close()
-
-		outputWriter = bufio.NewWriter(f)
+		outFileHanle, err := os.Create(outFileInput)
+		check(err)
+		outputWriter = bufio.NewWriter(outFileHanle)
 	}
 
 	// parsing hosts input 
@@ -68,12 +68,19 @@ func init()  {
 	}
 }
 
+func check(err error) {
+    if err != nil {
+        panic(err)
+    }
+}
+
 func print(data string) {
 
 	if outFileInput == "" {
 		fmt.Println(data)
 	} else {
-		fmt.Fprintf(outputWriter, data + "\n")
+		_, err := fmt.Fprintf(outputWriter, data + "\n")
+		check(err)
 		outputWriter.Flush()
 	}
 }
@@ -123,6 +130,7 @@ func main() {
 		}
 	}
 
+	outFileHanle.Close()
 
 
 }
