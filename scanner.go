@@ -18,6 +18,8 @@ import (
 )
 
 
+
+// commandline params for future use
 var hostsInput = ""
 var portsInput = ""
 var outFileInput = ""
@@ -84,6 +86,7 @@ func init()  {
 	includeFieldsList = strings.Split(includeFields, ",")
 }
 
+// printing to screen or writing to file. (determinated by commandline param)
 func print(data string) {
 
 	if outFileInput == "" {
@@ -95,6 +98,7 @@ func print(data string) {
 	}
 }
 
+// parsing the ports list input
 func parsePort(ports string) []int {
 	var scanPorts []int
 	slices := strings.Split(ports, ",")
@@ -120,12 +124,11 @@ func parsePort(ports string) []int {
 }
 
 func main() {
-
+	defer outFileHanle.Close()
+	
 	headerPrinted := false
 
 	log.Printf("Found %d Hosts. \n", len(hostLists))
-
-
 	log.Printf("Scanning %d ports \n", len(ports))
 	
 	// loading nmap probes from the file 
@@ -134,15 +137,19 @@ func main() {
 
 	// scanning open ports 
 	// returns <hosts, addresses>, hosts are not relevant for the next steps. just addresses
+	// no probes - just TCP-CONNCET scan
 	addresses := portscan.TCPportScan(hostLists, ports, "tcp", timeoutInput)
 
-	for host, open_ports := range addresses {
+	// now probe all the live hosts
+	for host, openPorts := range addresses {
 		
-		results := ProbeParser.ScanTarget(&vscan, host, open_ports, allMatches)
+		// scan target with nmap probes and custom modules 
+		results := ProbeParser.ScanTarget(&vscan, host, openPorts, allMatches)
 
 		for _, results := range results {
 			for _, result := range results { 
 
+				// showing the output as CSV or JSON 
 				if printCSV {
 					if !headerPrinted {
 						print(strings.Join(Types.GetHeaders(&result, includeFieldsList, excludeFieldsList), ","))
@@ -159,6 +166,4 @@ func main() {
 			
 		}
 	}
-
-	outFileHanle.Close()
 }

@@ -177,8 +177,20 @@ func grabResponse(addr string, data []byte) ([]byte, error) {
 	return response, nil
 }
 
+/**
+ * Scans the target with nmap probes and then scans with the custom modules
+ * input:
+ * 		v - nmap probes object
+ * 		host - the hostname to scan
+ * 		ports - list of ports to scan
+ * 		allMatches - continue probing after a successful match to find all the possible matches 
+ * output:
+ * 		map of <host>:<results>
+ */ 
 func ScanTarget(v *Types.VScan, host string, ports []int, allMatches bool) (map[string][]Types.Result) {
 	var target Types.Target
+
+	// creating the output map
 	results := make(map[string][]Types.Result)
 
 	target.IP = host
@@ -186,24 +198,29 @@ func ScanTarget(v *Types.VScan, host string, ports []int, allMatches bool) (map[
 
 	var probesUsed []Types.Probe
 
+	// filter out all the UDP probes (now only TCP is supported)
 	for _, probe := range v.Probes {
 		if strings.ToLower(probe.Protocol) == strings.ToLower(target.Protocol) {
 			probesUsed = append(probesUsed, probe)
 		}
 	}
 
+	// use also the NULL probe because why not ?
 	probesUsed = append(probesUsed, v.ProbesMapKName["NULL"])
 
+	// sort probes by Rarity, from less rare to rare
 	probesUsed = Types.SortProbesByRarity(probesUsed)
 
+	// scan port by port 
 	for _, port := range ports {
 		target.Port = port
 		portResult, _ := scanWithProbes(v, target, &probesUsed, allMatches)			
 
-		// special scan model is here 
+		// special scan model is here  
 		if val, ok := modules.PortModules[port]; ok {
 
 			for _, f := range val {
+				// calling all the modules which are "binding" on this port
 				f(&portResult)	
 			}
 			
