@@ -2,6 +2,7 @@ package main
 
 import (
 	"GoScan/core/ProbeParser"
+	"GoScan/core/ProbeParser/Types"
 	"GoScan/core/portscan"
 	"GoScan/core/helpers"
 	"encoding/json"
@@ -23,6 +24,7 @@ var outFileInput = ""
 var outFileHanle *os.File
 var outputWriter *bufio.Writer
 var printCSV = false
+var allMatches = false
 var timeoutInput int
 var ports []int
 var hostLists []string
@@ -39,6 +41,8 @@ func init()  {
 	flag.StringVar(&outFileInput, "o", "", "Output the scanning information to file.")
 
 	flag.BoolVar(&printCSV, "csv", false, "Output as CSV\n[BOOL] default false")
+	
+	flag.BoolVar(&allMatches, "all", false, "scan for all mathces")
 
 	flag.Parse()
 
@@ -112,7 +116,7 @@ func main() {
 	log.Printf("Scanning %d ports \n", len(ports))
 	
 	// loading nmap probes from the file 
-	vscan := ProbeParser.VScan{}
+	vscan := Types.VScan{}
 	vscan.ParseServiceProbes()
 
 	// scanning open ports 
@@ -121,18 +125,18 @@ func main() {
 
 	for host, open_ports := range addresses {
 		
-		results := vscan.ScanTarget(host, open_ports)
+		results := ProbeParser.ScanTarget(&vscan, host, open_ports, allMatches)
 
 		for _, results := range results {
 			for _, result := range results { 
 
 				if printCSV {
 					if !headerPrinted {
-						print(strings.Join(ProbeParser.GetHeaders(&result), ","))
+						print(strings.Join(Types.GetHeaders(&result), ","))
 						headerPrinted = true
 					}
 
-					print(strings.Join(ProbeParser.GetValues(&result), ","))
+					print(strings.Join(Types.GetValues(&result), ","))
 
 				} else {
 					s, _ := json.MarshalIndent(result, "", "\t")

@@ -5,12 +5,14 @@ import (
 	"strings"
 	"net"
 	"time"
+	"GoScan/modules"
+	"GoScan/core/ProbeParser/Types"
 )
 
-func checkMatchForResponse(response []byte, match Match, lastMatch *Match, result *Result) (bool) {
+func checkMatchForResponse(response []byte, match Types.Match, lastMatch *Types.Match, result *Types.Result) (bool) {
 	// if found the right probe 
 	matchFound := false	
-	var tempService Service
+	var tempService Types.Service
 
 	matched := match.MatchPattern(response)
 
@@ -58,21 +60,21 @@ func checkMatchForResponse(response []byte, match Match, lastMatch *Match, resul
 	* I will not try to get http headers and titles, as it's will be part of the modules section.
 */
 
-func (v *VScan) scanWithProbes(target Target, probes *[]Probe) (Result, error) {
-	var result = Result{Target: target}
+func scanWithProbes(v *Types.VScan, target Types.Target, probes *[]Types.Probe, allMatches bool) (Types.Result, error) {
+	var result = Types.Result{Target: target}
 
 	// just appending port to ip address
 	addr := target.GetAddress()
 
 	// if found the right probe 
-	var lastMatch Match
+	var lastMatch Types.Match
 
 	// returning if found "hard" match, else will continue to next matches.
 	for _, probe := range *probes {
 		var response []byte;
 
 		// decoding the probe regex pattern 
-		probeData, _ := DecodeData(probe.Data)
+		probeData, _ := Types.DecodeData(probe.Data)
 
 
 		// sending the probe and waiting for info
@@ -81,11 +83,16 @@ func (v *VScan) scanWithProbes(target Target, probes *[]Probe) (Result, error) {
 		// if no response is recieved - continue to the next probe 
 		if len(response) == 0 { continue }
 
+		result.RawBanner = response
 
 		// try to match the probes -
 		for _, match := range *probe.Matchs {	
 
-			checkMatchForResponse(response, match, &lastMatch, &result)
+			matchFound := checkMatchForResponse(response, match, &lastMatch, &result)
+
+			if matchFound && !allMatches {
+				return result, nil
+			}
 
 						
 		}	
@@ -95,7 +102,12 @@ func (v *VScan) scanWithProbes(target Target, probes *[]Probe) (Result, error) {
 		if status {
 			for _, match := range *fbProbe.Matchs {
 				
-				checkMatchForResponse(response, match, &lastMatch, &result)
+				matchFound := checkMatchForResponse(response, match, &lastMatch, &result)
+
+				if matchFound && !allMatches {
+					return result, nil
+				}
+
 			}
 		}
 
@@ -165,14 +177,14 @@ func grabResponse(addr string, data []byte) ([]byte, error) {
 	return response, nil
 }
 
-func (v *VScan) ScanTarget(host string, ports []int) (map[string][]Result) {
-	var target Target
-	results := make(map[string][]Result)
+func ScanTarget(v *Types.VScan, host string, ports []int, allMatches bool) (map[string][]Types.Result) {
+	var target Types.Target
+	results := make(map[string][]Types.Result)
 
 	target.IP = host
 	target.Protocol = "tcp"
 
-	var probesUsed []Probe
+	var probesUsed []Types.Probe
 
 	for _, probe := range v.Probes {
 		if strings.ToLower(probe.Protocol) == strings.ToLower(target.Protocol) {
@@ -182,13 +194,21 @@ func (v *VScan) ScanTarget(host string, ports []int) (map[string][]Result) {
 
 	probesUsed = append(probesUsed, v.ProbesMapKName["NULL"])
 
-	probesUsed = sortProbesByRarity(probesUsed)
+	probesUsed = Types.SortProbesByRarity(probesUsed)
 
 	for _, port := range ports {
 		target.Port = port
-		portResult, _ := v.scanWithProbes(target, &probesUsed)			
+		portResult, _ := scanWithProbes(v, target, &probesUsed, allMatches)			
 
 		// special scan model is here 
+		if val, ok := modules.PortModules[port]; ok {
+
+			for _, f := range val {
+				f(&portResult)	
+			}
+			
+		}
+		
 
 		results[host] = append(results[host], portResult)
 	}	

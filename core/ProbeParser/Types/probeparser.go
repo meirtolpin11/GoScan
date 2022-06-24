@@ -1,4 +1,4 @@
-package ProbeParser
+package Types
 
 import (
 	_ "embed"

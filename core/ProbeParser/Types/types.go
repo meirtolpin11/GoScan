@@ -1,4 +1,4 @@
-package ProbeParser
+package Types
 
 import (
 	"regexp"
@@ -71,6 +71,7 @@ type Result struct {
 type Service struct {
 	Name        string
 	Banner      string
+	RawBanner   []byte
 
 	Extras
 }

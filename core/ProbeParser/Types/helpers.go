@@ -1,4 +1,4 @@
-package ProbeParser
+package Types
 
 import (
 	"sort"
@@ -253,7 +253,7 @@ func (m *Match) ParseVersionInfo(response []byte) Extras {
 	return extras
 }
 
-func sortProbesByRarity(probes []Probe) (probesSorted []Probe) {
+func SortProbesByRarity(probes []Probe) (probesSorted []Probe) {
 	probesToSort := ProbesRarity(probes)
 	sort.Stable(probesToSort)
 	probesSorted = []Probe(probesToSort)
