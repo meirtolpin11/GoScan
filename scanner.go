@@ -21,6 +21,10 @@ import (
 var hostsInput = ""
 var portsInput = ""
 var outFileInput = ""
+var excludeFields = ""
+var includeFields = ""
+var excludeFieldsList []string
+var includeFieldsList []string
 var outFileHanle *os.File
 var outputWriter *bufio.Writer
 var printCSV = false
@@ -38,11 +42,16 @@ func init()  {
 
 	flag.IntVar(&timeoutInput, "t", 2, "Setting scaner connection timeouts,Maxtime 30 Second.")
 
-	flag.StringVar(&outFileInput, "o", "", "Output the scanning information to file.")
+	flag.StringVar(&outFileInput, "w", "", "Output the scanning information to file.\n[CSV mode only]")
+
+	flag.StringVar(&excludeFields, "ex", "", "Exclude the following field from the output.\n[CSV mode only]\n-e Banner,RawBanner,Hostname ")
+	
+	flag.StringVar(&includeFields, "inc", "", "Include only the following field from the output.\n[CSV mode only]\nOverrides exclude filer\n-i IP,Name,Port ")
 
 	flag.BoolVar(&printCSV, "csv", false, "Output as CSV\n[BOOL] default false")
 	
 	flag.BoolVar(&allMatches, "all", false, "scan for all mathces")
+
 
 	flag.Parse()
 
@@ -69,6 +78,10 @@ func init()  {
 
 	// parsing the imported ports 	
 	ports = parsePort(portsInput)
+
+	// parsing exclude list
+	excludeFieldsList = strings.Split(excludeFields, ",")
+	includeFieldsList = strings.Split(includeFields, ",")
 }
 
 func print(data string) {
@@ -132,11 +145,11 @@ func main() {
 
 				if printCSV {
 					if !headerPrinted {
-						print(strings.Join(Types.GetHeaders(&result), ","))
+						print(strings.Join(Types.GetHeaders(&result, includeFieldsList, excludeFieldsList), ","))
 						headerPrinted = true
 					}
 
-					print(strings.Join(Types.GetValues(&result), ","))
+					print(strings.Join(Types.GetValues(&result, includeFieldsList, excludeFieldsList), ","))
 
 				} else {
 					s, _ := json.MarshalIndent(result, "", "\t")

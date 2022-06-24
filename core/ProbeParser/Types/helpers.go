@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"strconv"
+	"golang.org/x/exp/slices"
 	"encoding/json"
 )
 
@@ -278,7 +279,7 @@ func (s Service) String() string {
 }
 
 // converts a struct (passed as interface) to list of string values 
-func GetValues(s interface{}, params ...[]string) []string {
+func GetValues(s interface{}, includeFields []string, excludeFields []string, params ...[]string) []string {
 	
 	var values []string
 	if len(params) != 0 {
@@ -292,11 +293,24 @@ func GetValues(s interface{}, params ...[]string) []string {
     reflectValue := reflect.ValueOf(s).Elem()
 
     for i := 0; i < reflectType.NumField(); i++ {
+    	typeName := reflectType.Field(i).Name
         value := reflectValue.Field(i).Interface()
 
         if reflectValue.Field(i).Kind() == reflect.Struct {
-            values = GetValues(reflectValue.Field(i).Addr().Interface(), values)
+            values = GetValues(reflectValue.Field(i).Addr().Interface(), includeFields, excludeFields, values)
         } else {
+        	
+	        // check if includeField contains just one string - "" empty string because of "split" in main
+	        if len(includeFields) == 1 {
+	        	if slices.Contains(excludeFields, typeName) {
+		    		continue
+		    	}	
+	        } else {
+	        	if !slices.Contains(includeFields, typeName) {
+	        		continue
+	        	}
+	        }
+	        
         	values = append(values, fmt.Sprintf("\"%v\"", strings.Replace(fmt.Sprintf("%v", value), "\"", "\"\"", -1)))
         }
     }
@@ -305,8 +319,7 @@ func GetValues(s interface{}, params ...[]string) []string {
 }
 
 // converts struct's (passed as interface) key name to list of strings
-func GetHeaders(s interface{}, params ...[]string) []string {
-	
+func GetHeaders(s interface{}, includeFields []string, excludeFields []string, params ...[]string) []string {
 	var headers []string
 	if len(params) != 0 {
 		headers = params[0]
@@ -322,8 +335,20 @@ func GetHeaders(s interface{}, params ...[]string) []string {
         typeName := reflectType.Field(i).Name
 
         if reflectValue.Field(i).Kind() == reflect.Struct {
-            headers = GetHeaders(reflectValue.Field(i).Addr().Interface(), headers)
+            headers = GetHeaders(reflectValue.Field(i).Addr().Interface(), includeFields, excludeFields, headers)
         } else {
+
+	        // check if includeField contains just one string - "" empty string because of "split" in main
+	        if len(includeFields) == 1 {
+	        	if slices.Contains(excludeFields, typeName) {
+		    		continue
+		    	}	
+	        } else {
+	        	if !slices.Contains(includeFields, typeName) {
+	        		continue
+	        	}
+	        }
+	        
         	headers = append(headers, typeName)	
         }
         
